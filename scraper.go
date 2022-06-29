@@ -8,7 +8,6 @@ import (
 	"github.com/gocolly/colly"
 )
 
-
 func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
 	c := colly.NewCollector()
 
@@ -17,6 +16,18 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
 	if err != nil {
 		log.Printf("Error with regex: %s\n", err)
 	}
+
+	re2, err := regexp.Compile(`http.*?[^)]*`)
+	if err != nil {
+		log.Printf("Error with image regex: %s\n", err)
+	}
+
+	//Daily cover img & punch-line (or something like that shown besides date)
+	c.OnHTML(".c-masthead", func(e *colly.HTMLElement) {
+		coverImageHTML := e.ChildAttr(".c-masthead__main", "style")
+		coverImage = re2.FindString(coverImageHTML)
+		quote = e.ChildText(".c-masthead__main .l-wrapper .c-masthead__dateline .c-masthead__tagline a")
+	})
 
 	// Main/Top news
 	c.OnHTML(".c-entry-box--compact--hero", func(e *colly.HTMLElement) {
@@ -92,45 +103,50 @@ func outputToFeedNews(c <-chan feedStory) {
 }
 
 func startScraping() {
-	log.Println("Fetching latest stories from The Verge")
-	// Channels
-	fromMainNews := make(chan mainStory, 10)
-	fromFeedNews := make(chan feedStory, 10)
-	toMainNews := make(chan mainStory, 10)
-	toFeedNews := make(chan feedStory, 10)
+	for {
+		log.Println("Fetching latest stories from The Verge")
+		// Channels
+		fromMainNews := make(chan mainStory, 10)
+		fromFeedNews := make(chan feedStory, 10)
+		toMainNews := make(chan mainStory, 10)
+		toFeedNews := make(chan feedStory, 10)
 
-	go scrapeTheVerge(fromMainNews, fromFeedNews)
-	go outputToMainNews(toMainNews)
-	go outputToFeedNews(toFeedNews)
+		go scrapeTheVerge(fromMainNews, fromFeedNews)
+		go outputToMainNews(toMainNews)
+		go outputToFeedNews(toFeedNews)
 
-	fromMainNewsOpen := true
-	fromFeedNewsOpen := true
+		fromMainNewsOpen := true
+		fromFeedNewsOpen := true
 
-	for fromMainNewsOpen || fromFeedNewsOpen {
-		select {
-			case mainStory, open := <-fromMainNews: {
-				if open {
-					toMainNews <- mainStory
-				} else {
-					fromMainNewsOpen = false
+		for fromMainNewsOpen || fromFeedNewsOpen {
+			select {
+			case mainStory, open := <-fromMainNews:
+				{
+					if open {
+						toMainNews <- mainStory
+					} else {
+						fromMainNewsOpen = false
+					}
 				}
-			}
-			case feedStory, open := <-fromFeedNews: {
-				if(open) {
-					toFeedNews <- feedStory
-				} else {
-					fromFeedNewsOpen = false
+			case feedStory, open := <-fromFeedNews:
+				{
+					if open {
+						toFeedNews <- feedStory
+					} else {
+						fromFeedNewsOpen = false
+					}
 				}
 			}
 		}
+
+		currentNews.Image = coverImage
+		currentNews.Quote = quote
+		currentNews.Main = mainStoryData
+		currentNews.Feed = feedStoryData
+		// Do not keep 'history' in slice of earlier data
+		mainStoryData = nil
+		feedStoryData = nil
+
+		time.Sleep(1 * time.Hour)
 	}
-
-	log.Println("Done fetching news from The Verge")
-	currentNews.Main = mainStoryData
-	currentNews.Feed = feedStoryData
-	// Do not keep 'history' in slice of earlier fetch data
-	mainStoryData = nil
-	feedStoryData = nil
-
-	time.Sleep(1 * time.Hour)
 }

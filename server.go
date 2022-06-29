@@ -12,11 +12,27 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func serveImgAndQuote() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		//TODO: Fix missing fields from result. Now just array of two string.
+		data, err := json.Marshal([]string{currentNews.Image, currentNews.Quote})
+		if err != nil {
+			log.Printf("Error: %s\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+		}
+	}
+}
+
 func serveMainNews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		data, err := json.MarshalIndent(currentNews.Main, "", "\t")
 		if err != nil {
+			log.Printf("Error: %s\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
 			w.WriteHeader(http.StatusOK)
@@ -30,6 +46,7 @@ func serveFeedNews() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		data, err := json.MarshalIndent(currentNews.Feed, "", "\t")
 		if err != nil {
+			log.Printf("Error: %s\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
 			w.WriteHeader(http.StatusOK)
@@ -38,23 +55,22 @@ func serveFeedNews() http.HandlerFunc {
 	}
 }
 
-
 func initRouter() *mux.Router {
 	appRouter := mux.NewRouter()
 	appRouter.HandleFunc("/main-news", serveMainNews()).Methods("GET")
 	appRouter.HandleFunc("/feed-news", serveFeedNews()).Methods("GET")
+	appRouter.HandleFunc("/image-quote", serveImgAndQuote()).Methods("GET")
 	return appRouter
 }
-
 
 func runServer() {
 	server := &http.Server{
 		Handler: initRouter(),
-		Addr: ":" + os.Getenv("PORT"),
+		Addr:    ":" + os.Getenv("PORT"),
 		// From mux docs; avoid Slowloris attacks by implementing timeouts.
 		// Slowloris - partial HTTP requests.
 		WriteTimeout: 15 * time.Second,
-		ReadTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  time.Second * 60,
 	}
 

@@ -19,10 +19,14 @@ type feedStory struct {
 }
 
 type data struct {
-	Main []*mainStory `json:"MainNews"`
-	Feed []*feedStory `json:"FeedNews"`
+	Image string       `json:"BackgroundImg"`
+	Quote string       `json:"Quote"`
+	Main  []*mainStory `json:"MainNews"`
+	Feed  []*feedStory `json:"FeedNews"`
 }
 
+var coverImage string
+var quote string
 var mainStoryData []*mainStory
 var feedStoryData []*feedStory
 var currentNews data
