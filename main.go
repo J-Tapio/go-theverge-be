@@ -18,17 +18,28 @@ type feedStory struct {
 	Comments string `json:"Comments"`
 }
 
+type featuredStory struct {
+	Title     string `json:"Title"`
+	Author    string `json:"Author"`
+	URL       string `json:"URL"`
+	Date      string `json:"Date"`
+	Image     string `json:"Image"`
+	PullQuote string `json:"PullQuote"`
+}
+
 type data struct {
-	Image string       `json:"BackgroundImg"`
-	Quote string       `json:"Quote"`
-	Main  []*mainStory `json:"MainNews"`
-	Feed  []*feedStory `json:"FeedNews"`
+	Image    string           `json:"BackgroundImg"`
+	Quote    string           `json:"Quote"`
+	Main     []*mainStory     `json:"MainNews"`
+	Feed     []*feedStory     `json:"FeedNews"`
+	Featured []*featuredStory `json:"FeedFeatured"`
 }
 
 var coverImage string
 var quote string
 var mainStoryData []*mainStory
 var feedStoryData []*feedStory
+var featuredStoryData []*featuredStory
 var currentNews data
 
 func main() {

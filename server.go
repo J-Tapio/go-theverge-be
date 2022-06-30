@@ -14,7 +14,8 @@ import (
 
 func serveImgAndQuote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		//TODO: Fix missing fields from result. Now just array of two string.
 		data, err := json.Marshal([]string{currentNews.Image, currentNews.Quote})
 		if err != nil {
@@ -29,7 +30,8 @@ func serveImgAndQuote() http.HandlerFunc {
 
 func serveMainNews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		data, err := json.MarshalIndent(currentNews.Main, "", "\t")
 		if err != nil {
 			log.Printf("Error: %s\n", err)
@@ -43,8 +45,24 @@ func serveMainNews() http.HandlerFunc {
 
 func serveFeedNews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		data, err := json.MarshalIndent(currentNews.Feed, "", "\t")
+		if err != nil {
+			log.Printf("Error: %s\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+		}
+	}
+}
+
+func serveFeaturedNews() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		data, err := json.MarshalIndent(currentNews.Featured, "", "\t")
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -59,6 +77,7 @@ func initRouter() *mux.Router {
 	appRouter := mux.NewRouter()
 	appRouter.HandleFunc("/main-news", serveMainNews()).Methods("GET")
 	appRouter.HandleFunc("/feed-news", serveFeedNews()).Methods("GET")
+	appRouter.HandleFunc("/featured-news", serveFeaturedNews()).Methods("GET")
 	appRouter.HandleFunc("/image-quote", serveImgAndQuote()).Methods("GET")
 	return appRouter
 }

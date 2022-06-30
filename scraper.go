@@ -8,7 +8,7 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
+func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featuredStory) {
 	c := colly.NewCollector()
 
 	// Regexp - parse image url from html element in string format
@@ -44,7 +44,19 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
 		c1 <- mainStory
 	})
 
-	// Other news
+	//Main/Top news - When The Verge shows only two top news
+	c.OnHTML(".c-entry-box-base", func(e *colly.HTMLElement) {
+		mainStory := mainStory{}
+		imageHTML := e.ChildText("a .c-picture script")
+		mainStory.Image = re.FindString(imageHTML)
+		mainStory.URL = e.ChildAttr("a", "href")
+		mainStory.Title = e.ChildText(".c-entry-box-base__body .c-entry-box-base__headline a")
+		mainStory.Author = e.ChildText(".c-entry-box-base__body .c-byline .c-byline-wrapper .c-byline__item a .c-byline__author-name")
+
+		c1 <- mainStory
+	})
+
+	// Other news - Feed
 	c.OnHTML(".c-compact-river__entry", func(e *colly.HTMLElement) {
 		feedStory := feedStory{}
 
@@ -69,10 +81,27 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
 		}
 	})
 
+	// Other news - Feed featured
+
+	c.OnHTML(".c-compact-river__entry--featured", func(e *colly.HTMLElement) {
+		feedStoryFeatured := featuredStory{}
+
+		feedStoryFeatured.URL = e.ChildAttr("a", "href")
+		imageHTML := e.ChildText("a .c-entry-box--compact__image noscript")
+		feedStoryFeatured.Image = re.FindString(imageHTML)
+		feedStoryFeatured.Title = e.ChildText(".c-entry-box--compact__body .c-entry-box--compact__title a")
+		feedStoryFeatured.PullQuote = e.ChildText(".c-entry-box--compact__body .p-dek")
+		feedStoryFeatured.Author = e.ChildText(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:first-child a .c-byline__author-name")
+		feedStoryFeatured.Date = e.ChildAttr(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:nth-child(2) .c-byline__item", "datetime")
+
+		c3 <- feedStoryFeatured
+	})
+
 	c.OnError(func(r *colly.Response, err error) {
 		log.Println(err)
 		close(c1)
 		close(c2)
+		close(c3)
 	})
 
 	c.OnRequest(func(r *colly.Request) {
@@ -83,6 +112,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory) {
 		log.Println("Finished with scraping:", r.Request.URL)
 		close(c1)
 		close(c2)
+		close(c3)
 	})
 
 	c.Visit("https://www.theverge.com")
@@ -102,23 +132,34 @@ func outputToFeedNews(c <-chan feedStory) {
 	}
 }
 
+func outputToFeedFeatured(c <-chan featuredStory) {
+	for {
+		featuredStory := <-c
+		featuredStoryData = append(featuredStoryData, &featuredStory)
+	}
+}
+
 func startScraping() {
 	for {
 		log.Println("Fetching latest stories from The Verge")
 		// Channels
 		fromMainNews := make(chan mainStory, 10)
 		fromFeedNews := make(chan feedStory, 10)
+		fromFeaturedNews := make(chan featuredStory, 10)
 		toMainNews := make(chan mainStory, 10)
 		toFeedNews := make(chan feedStory, 10)
+		toFeaturedNews := make(chan featuredStory, 10)
 
-		go scrapeTheVerge(fromMainNews, fromFeedNews)
+		go scrapeTheVerge(fromMainNews, fromFeedNews, fromFeaturedNews)
 		go outputToMainNews(toMainNews)
 		go outputToFeedNews(toFeedNews)
+		go outputToFeedFeatured(toFeaturedNews)
 
 		fromMainNewsOpen := true
 		fromFeedNewsOpen := true
+		fromFeaturedNewsOpen := true
 
-		for fromMainNewsOpen || fromFeedNewsOpen {
+		for fromMainNewsOpen || fromFeedNewsOpen || fromFeaturedNewsOpen {
 			select {
 			case mainStory, open := <-fromMainNews:
 				{
@@ -136,6 +177,14 @@ func startScraping() {
 						fromFeedNewsOpen = false
 					}
 				}
+			case featuredStory, open := <-fromFeaturedNews:
+				{
+					if open {
+						toFeaturedNews <- featuredStory
+					} else {
+						fromFeaturedNewsOpen = false
+					}
+				}
 			}
 		}
 
@@ -143,9 +192,11 @@ func startScraping() {
 		currentNews.Quote = quote
 		currentNews.Main = mainStoryData
 		currentNews.Feed = feedStoryData
+		currentNews.Featured = featuredStoryData
 		// Do not keep 'history' in slice of earlier data
 		mainStoryData = nil
 		feedStoryData = nil
+		featuredStoryData = nil
 
 		time.Sleep(1 * time.Hour)
 	}
