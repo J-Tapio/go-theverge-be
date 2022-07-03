@@ -12,6 +12,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func serveAsideData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		data, err := json.MarshalIndent(currentNews.Videos, "", "\t")
+		if err != nil {
+			log.Printf("Error: %s\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write(data)
+		}
+	}
+}
+
 func serveImgAndQuote() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -79,13 +94,14 @@ func initRouter() *mux.Router {
 	appRouter.HandleFunc("/feed-news", serveFeedNews()).Methods("GET")
 	appRouter.HandleFunc("/featured-news", serveFeaturedNews()).Methods("GET")
 	appRouter.HandleFunc("/image-quote", serveImgAndQuote()).Methods("GET")
+	appRouter.HandleFunc("/video-articles", serveAsideData()).Methods("GET")
 	return appRouter
 }
 
-func runServer() {
+func startServer() {
 	server := &http.Server{
 		Handler: initRouter(),
-		Addr:    ":" + os.Getenv("PORT"),
+		Addr:   ":8000" /* ":" + os.Getenv("PORT") */,
 		// From mux docs; avoid Slowloris attacks by implementing timeouts.
 		// Slowloris - partial HTTP requests.
 		WriteTimeout: 15 * time.Second,

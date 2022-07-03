@@ -56,7 +56,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		c1 <- mainStory
 	})
 
-	// Other news - Feed
+	// Feed news
 	c.OnHTML(".c-compact-river__entry", func(e *colly.HTMLElement) {
 		feedStory := feedStory{}
 
@@ -81,8 +81,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		}
 	})
 
-	// Other news - Feed featured
-
+	// Feed news - featured
 	c.OnHTML(".c-compact-river__entry--featured", func(e *colly.HTMLElement) {
 		feedStoryFeatured := featuredStory{}
 
@@ -95,6 +94,22 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		feedStoryFeatured.Date = e.ChildAttr(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:nth-child(2) .c-byline__item", "datetime")
 
 		c3 <- feedStoryFeatured
+	})
+
+	// Feed news - aside
+	c.OnHTML(".c-rock-list__item", func(e *colly.HTMLElement) {
+		feedAsideVideo := asideVideo{}
+
+		feedAsideVideo.Title = e.ChildText(".c-rock-list__link .c-rock-list__item--body span:first-child")
+		feedAsideVideo.URL = e.ChildAttr(".c-rock-list__link", "href")
+		imageHTML := e.ChildText(".c-rock-list__link .c-rock-list__image .c-picture script")
+		imageURL := re.FindAllString(imageHTML, -1)
+		feedAsideVideo.Image = re2.FindString(imageURL[len(imageURL)-1])
+
+		//Do not include last two scrape findings - Different aside section.
+		if len(feedAsideVideos) < 4 {
+			feedAsideVideos = append(feedAsideVideos, &feedAsideVideo)
+		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
@@ -139,7 +154,7 @@ func outputToFeedFeatured(c <-chan featuredStory) {
 	}
 }
 
-func startScraping() {
+func startScraper() {
 	for {
 		log.Println("Fetching latest stories from The Verge")
 		// Channels
@@ -193,10 +208,12 @@ func startScraping() {
 		currentNews.Main = mainStoryData
 		currentNews.Feed = feedStoryData
 		currentNews.Featured = featuredStoryData
+		currentNews.Videos = feedAsideVideos
 		// Do not keep 'history' in slice of earlier data
 		mainStoryData = nil
 		feedStoryData = nil
 		featuredStoryData = nil
+		feedAsideVideos = nil
 
 		time.Sleep(1 * time.Hour)
 	}

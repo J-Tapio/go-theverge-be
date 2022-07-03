@@ -27,9 +27,16 @@ type featuredStory struct {
 	PullQuote string `json:"PullQuote"`
 }
 
+type asideVideo struct {
+	Title string `json:"Title"`
+	URL   string `json:"URL"`
+	Image string `json:"Image"`
+}
+
 type data struct {
 	Image    string           `json:"BackgroundImg"`
 	Quote    string           `json:"Quote"`
+	Videos   []*asideVideo    `json:"Videos"`
 	Main     []*mainStory     `json:"MainNews"`
 	Feed     []*feedStory     `json:"FeedNews"`
 	Featured []*featuredStory `json:"FeedFeatured"`
@@ -37,6 +44,7 @@ type data struct {
 
 var coverImage string
 var quote string
+var feedAsideVideos []*asideVideo
 var mainStoryData []*mainStory
 var feedStoryData []*feedStory
 var featuredStoryData []*featuredStory
@@ -44,7 +52,7 @@ var currentNews data
 
 func main() {
 	log.Println("Starting the server")
-	go startScraping()
-	runServer()
+	go startScraper()
+	startServer()
 	log.Println("Server has stopped running")
 }
