@@ -1,4 +1,4 @@
-# The Verge News Scraper
+# News Scraper & Backend
 
 ## What is this?
 
