@@ -34,7 +34,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		mainStory := mainStory{}
 		mainStory.URL = e.ChildAttr("a", "href")
 
-		//TODO: Parse all possible image-sizes and save in convenient way:
+		//TODO: Parse all possible image-sizes and save in convenient way
 		//? mainStory.Image = e.ChildAttr("a .c-picture source", "srcset")
 		imageHTML := e.ChildText("a .c-picture script")
 		mainStory.Image = re.FindString(imageHTML)
@@ -51,7 +51,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		mainStory.Image = re.FindString(imageHTML)
 		mainStory.URL = e.ChildAttr("a", "href")
 		mainStory.Title = e.ChildText(".c-entry-box-base__body .c-entry-box-base__headline a")
-		mainStory.Author = e.ChildText(".c-entry-box-base__body .c-byline .c-byline-wrapper .c-byline__item a .c-byline__author-name")
+		mainStory.Author = e.ChildText(".c-entry-box-base__body .c-byline .c-byline-wrapper .c-byline__item a .c-byline__author-name:first")
 
 		c1 <- mainStory
 	})
@@ -90,7 +90,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		feedStoryFeatured.Image = re.FindString(imageHTML)
 		feedStoryFeatured.Title = e.ChildText(".c-entry-box--compact__body .c-entry-box--compact__title a")
 		feedStoryFeatured.PullQuote = e.ChildText(".c-entry-box--compact__body .p-dek")
-		feedStoryFeatured.Author = e.ChildText(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:first-child a .c-byline__author-name")
+		feedStoryFeatured.Author = e.ChildText(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:first-child a .c-byline__author-name:first")
 		feedStoryFeatured.Date = e.ChildAttr(".c-entry-box--compact__body .c-byline .c-byline-wrapper .c-byline__item:nth-child(2) .c-byline__item", "datetime")
 
 		c3 <- feedStoryFeatured
@@ -107,7 +107,7 @@ func scrapeTheVerge(c1 chan<- mainStory, c2 chan<- feedStory, c3 chan<- featured
 		feedAsideVideo.Image = re2.FindString(imageURL[len(imageURL)-1])
 
 		//Do not include last two scrape findings - Different aside section.
-		if len(feedAsideVideos) < 4 {
+		if len(feedAsideVideos) < 3 {
 			feedAsideVideos = append(feedAsideVideos, &feedAsideVideo)
 		}
 	})

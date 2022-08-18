@@ -77,6 +77,7 @@ func serveFeaturedNews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		log.Println(currentNews.Featured)
 		data, err := json.MarshalIndent(currentNews.Featured, "", "\t")
 		if err != nil {
 			log.Printf("Error: %s\n", err)
