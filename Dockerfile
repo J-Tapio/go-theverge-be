@@ -7,5 +7,5 @@ RUN go build -o app
 
 FROM alpine:3.16.0 as production
 COPY --from=builder app .
-EXPOSE 80
+EXPOSE 5678
 CMD ./app
