@@ -2,7 +2,7 @@
 
 ## IMPORTANT
 
-As of 12/09/2022 The Verge has made an overhaul to their site. Hence, the backend and scraper is not working anymore. Shame, old website looked better in my opinion.
+As of 12/09/2022 The Verge has made an overhaul to their site. Hence, the backend and scraper is not working anymore. Shame, [old website](https://web.archive.org/web/20220913012958/https://www.theverge.com) looked better in my opinion.
 
 ## What is this?
 
